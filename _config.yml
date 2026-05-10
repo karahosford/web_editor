@@ -1,0 +1,17 @@
+title: "AI and the Future of the UCC Website"
+description: "A presentation by Dr. Kara Hosford"
+author: "Dr. Kara Hosford"
+lang: en-US
+
+# GitHub Pages settings
+remote_theme: pages-themes/slate@v0.2.0
+plugins:
+  - jekyll-remote-theme
+  - jekyll-seo-tag
+
+# Build settings
+markdown: kramdown
+highlighter: rouge
+
+# Theme settings
+theme_color: "#003c69"
