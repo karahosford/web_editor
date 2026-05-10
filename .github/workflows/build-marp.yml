@@ -1,0 +1,30 @@
+name: Build Marp Presentation
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'web_presentation.md'
+      - 'images/**'
+      - '.github/workflows/build-marp.yml'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Build Marp presentation
+        uses: docker://marpteam/marp-cli:latest
+        with:
+          args: web_presentation.md -o web_presentation.html
+        env:
+          MARP_USER: root:root
+      
+      - name: Commit and push if changed
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add web_presentation.html
+          git commit -m "Build Marp presentation" || exit 0
+          git push

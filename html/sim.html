@@ -1,0 +1,811 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Society Search Simulation</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+    :root {
+      --amber: #FFB500;
+      --crimson: #CE1F2C;
+      --navy: #003C69;
+      --ink: #10253f;
+      --text: #10253f;
+      --muted: #4e6276;
+      --panel: rgba(255, 255, 255, 0.82);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 16% 12%, rgba(255, 181, 0, 0.22), transparent 35%),
+        radial-gradient(circle at 84% 86%, rgba(206, 31, 44, 0.16), transparent 40%),
+        linear-gradient(145deg, #f7fbff 0%, #eef5fb 58%, #e5eef7 100%);
+      color: var(--text);
+      font-family: "Space Grotesk", "Segoe UI", sans-serif;
+    }
+
+    canvas {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      display: block;
+    }
+
+    .noise {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image: radial-gradient(rgba(16, 37, 63, 0.055) 0.7px, transparent 0.7px);
+      background-size: 4px 4px;
+      opacity: 0.18;
+    }
+
+    .stars {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 1;
+      overflow: hidden;
+    }
+
+    .stars::before,
+    .stars::after {
+      content: "";
+      position: absolute;
+      inset: -20%;
+      background-repeat: repeat;
+      animation: twinkle 22s linear infinite alternate;
+    }
+
+    .stars::before {
+      background-image:
+        radial-gradient(circle at 12% 18%, rgba(255, 255, 255, 0.62) 1px, transparent 1.8px),
+        radial-gradient(circle at 78% 22%, rgba(255, 255, 255, 0.58) 1px, transparent 1.7px),
+        radial-gradient(circle at 62% 76%, rgba(255, 255, 255, 0.54) 1.1px, transparent 1.9px),
+        radial-gradient(circle at 34% 64%, rgba(255, 255, 255, 0.46) 0.9px, transparent 1.6px),
+        radial-gradient(circle at 90% 58%, rgba(255, 255, 255, 0.56) 1px, transparent 1.7px),
+        radial-gradient(circle at 22% 88%, rgba(255, 255, 255, 0.5) 1px, transparent 1.8px);
+      background-size: 280px 280px;
+      opacity: 0.45;
+    }
+
+    .stars::after {
+      background-image:
+        radial-gradient(circle at 25% 28%, rgba(255, 181, 0, 0.28) 1px, transparent 1.8px),
+        radial-gradient(circle at 72% 38%, rgba(206, 31, 44, 0.22) 1.1px, transparent 1.9px),
+        radial-gradient(circle at 44% 82%, rgba(255, 255, 255, 0.32) 1px, transparent 1.8px),
+        radial-gradient(circle at 15% 70%, rgba(255, 255, 255, 0.26) 0.9px, transparent 1.6px),
+        radial-gradient(circle at 86% 14%, rgba(255, 255, 255, 0.24) 1px, transparent 1.7px);
+      background-size: 360px 360px;
+      opacity: 0.28;
+      animation-duration: 30s;
+      transform: translateY(-2%);
+    }
+
+    .center-ui {
+      position: fixed;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: min(92vw, 760px);
+      z-index: 1300;
+      animation: rise 850ms ease-out;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 14px;
+      padding: 7px 12px;
+      border-radius: 999px;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #d8e4ef;
+      color: #183652;
+      background: rgba(255, 255, 255, 0.82);
+      border: 1px solid rgba(0, 60, 105, 0.2);
+      backdrop-filter: blur(6px);
+    }
+
+    .chip-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--amber);
+      box-shadow: 0 0 0 5px rgba(255, 181, 0, 0.14);
+      animation: pulse 1.8s infinite ease-in-out;
+    }
+
+    .search-panel {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px;
+      border-radius: 18px;
+      background: var(--panel);
+      border: 1px solid rgba(0, 60, 105, 0.2);
+      box-shadow: 0 18px 44px rgba(0, 60, 105, 0.2);
+      backdrop-filter: blur(10px);
+    }
+
+    .search-input {
+      flex: 1;
+      border: none;
+      border-radius: 12px;
+      padding: 14px 16px;
+      font-size: clamp(16px, 2.2vw, 20px);
+      font-family: "Space Grotesk", "Segoe UI", sans-serif;
+      color: #10253f;
+      background: rgba(255, 255, 255, 0.96);
+      outline: 1px solid rgba(0, 60, 105, 0.2);
+      transition: outline-color 200ms ease, background-color 200ms ease;
+    }
+
+    .search-input:focus {
+      outline-color: rgba(255, 181, 0, 0.8);
+      background: #ffffff;
+    }
+
+    .search-button {
+      border: none;
+      border-radius: 12px;
+      padding: 13px 16px;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #10253f;
+      background: linear-gradient(120deg, var(--amber), #ffd26e);
+      cursor: pointer;
+      transition: transform 180ms ease, box-shadow 180ms ease;
+      white-space: nowrap;
+    }
+
+    .search-button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 24px rgba(255, 181, 0, 0.28);
+    }
+
+    .meta {
+      margin-top: 10px;
+      min-height: 24px;
+      font-size: 13px;
+      color: var(--muted);
+      font-family: "IBM Plex Mono", monospace;
+      letter-spacing: 0.02em;
+      text-shadow: none;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.15); opacity: 0.65; }
+    }
+
+    @keyframes rise {
+      0% { transform: translate(-50%, -46%); opacity: 0; }
+      100% { transform: translate(-50%, -50%); opacity: 1; }
+    }
+
+    @keyframes twinkle {
+      0% { opacity: 0.24; transform: translateY(0px) scale(1); }
+      50% { opacity: 0.42; transform: translateY(3px) scale(1.005); }
+      100% { opacity: 0.3; transform: translateY(-2px) scale(1); }
+    }
+
+    @media (max-width: 720px) {
+      .search-panel {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .search-button {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="graph" aria-hidden="true"></canvas>
+  <div class="stars" aria-hidden="true"></div>
+  <div class="noise" aria-hidden="true"></div>
+
+  <main class="center-ui" id="centerUI" aria-label="AI-powered search simulation">
+    <div class="chip">
+      <span class="chip-dot"></span>
+      AI Knowledge Graph Search
+    </div>
+
+    <form id="searchForm" class="search-panel">
+      <input
+        id="searchInput"
+        class="search-input"
+        type="text"
+        value="I want to understand crime"
+        aria-label="Search query"
+      />
+      <button class="search-button" type="submit">Search</button>
+    </form>
+
+    <div id="meta" class="meta" aria-live="polite"></div>
+  </main>
+
+  <section id="ck113Panel" style="
+    position: fixed;
+    left: 50%;
+    top: 100%;
+    transform: translate(-50%, 0);
+    width: min(99vw, 1200px);
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(18px) saturate(1.2);
+    color: #10253f;
+    border-radius: 22px;
+    box-shadow: 0 -8px 34px rgba(0, 60, 105, 0.24);
+    z-index: 1001;
+    padding: 38px 32px 28px 32px;
+    font-family: 'Space Grotesk', 'Segoe UI', sans-serif;
+    transition: top 2.2s cubic-bezier(.77,.01,.29,.98);
+    height: 66vh;
+    max-height: 66vh;
+    overflow-y: auto;
+    border: 2px solid #FFB500;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2em 2.2em;
+  ">
+    <div style="grid-column:1/3;display:flex;align-items:center;justify-content:center;position:relative;">
+      <h2 style="margin-top:0;font-size:2.1rem;letter-spacing:0.01em;color:#003C69;text-shadow:none;">CK113 BA (Hons) Criminology</h2>
+      <button id="listenBtn" aria-label="Listen to this page" style="
+        position:absolute;right:0;top:18px;
+        width:44px;height:44px;
+        border-radius:50%;
+        border:none;
+        background:linear-gradient(120deg,#FFB500 60%,#FFD966 100%);
+        display:flex;align-items:center;justify-content:center;
+        box-shadow:0 2px 12px #003C6922;
+        transition:background 0.2s,box-shadow 0.2s;
+        z-index:2;
+        cursor:pointer;
+        outline:none;
+        overflow:hidden;
+      ">
+        <img src="hearing.png" alt="Listen" style="width:26px;height:26px;display:block;" />
+      </button>
+    </div>
+    <div style="font-size:1.1rem;line-height:1.6;margin-bottom:10px;">
+      <b style='color:#10253f;'>Code:</b> CK113<br>
+      <b style='color:#10253f;'>Duration:</b> 3 or 4 Years (International Pathway)<br>
+      <b style='color:#10253f;'>Teaching Mode:</b> Full-time<br>
+      <b style='color:#10253f;'>Qualifications:</b> BA (Hons)<br>
+      <b style='color:#10253f;'>NFQ Level:</b> Level 8<br>
+      <b style='color:#10253f;'>CAO Points (2025):</b> 419 (Range: 419-574)
+      <hr style="border: none; border-top: 2.5px solid #FFB500; margin: 18px 0 10px 0;">
+      <h3 style="color:#CE1F2C;">Why Choose This Course?</h3>
+      <ul style="color:#10253f;">
+        <li>Confront social problems with sophisticated analysis of crime, moral regulation, and social deviance</li>
+        <li>Develop a professional approach to bad behaviour, discipline, and justice</li>
+        <li>Option to study abroad in Year 3 (Canada, Denmark, Italy, Poland, Sweden, USA, UK)</li>
+      </ul>
+      <h3 style="color:#CE1F2C;">Skills & Careers</h3>
+      <ul style="color:#10253f;">
+        <li>Critical thinking, comparative and cultural analysis, research methods, statistics</li>
+        <li>Careers: policing, prisons, probation, social work, social administration, security, charities, journalism, TV/film, politics, community development</li>
+      </ul>
+      <div style="margin-top:18px;font-size:0.98rem;color:#10253f;">For the most up-to-date information, visit <a href="https://www.ucc.ie/en/ck113/" target="_blank" style="color:#CE1F2C;text-decoration:underline;">ucc.ie/en/ck113/</a></div>
+      <h3 style="color:#CE1F2C;margin-top:18px;">Hear from our students</h3>
+      <img src="student.png" alt="Hear from our students" style="width:100%;max-width:520px;border-radius:12px;border:1px solid rgba(255,181,0,0.55);box-shadow:0 6px 22px rgba(0,0,0,0.28);" />
+      <p style="margin-top:14px;color:#10253f;line-height:1.7;">
+        <strong style="color:#FFB500;">Alana Correia</strong><br><br>
+        I chose to study the BA in Criminology at UCC because I have always been passionate about understanding the social forces that shape human behaviour and the justice system. The course offered a perfect balance between theory and real-world application, allowing me to explore topics like gender, trauma, and social control from both academic and practical perspectives.
+        <a href="#" onclick="return false;" style="color:#CE1F2C;text-decoration:underline;font-weight:600;"> Read more</a>
+      </p>
+    </div>
+    <div style="font-size:1.05rem;line-height:1.7;">
+      <h3 style="color:#CE1F2C;">Course Outline</h3>
+      <p style="color:#10253f;">The Criminology BA is a window into the world, giving insight into human diversity in complex societies and a textured view of our propensity to err, conflict, blame, and punish.<br><br>
+      This contemporary course combines key topics in the social sciences and law – such as crime, deviance, morality, conflict, censure and justice – with philosophy, history, cultural studies and a language. The result is an exceptional breadth and depth of perspective and context.<br><br>
+      This is a research-driven, interdisciplinary programme that delivers an international body of knowledge, as well as research skills and critical thinking. Criminology provides a strong intellectual background for anyone thinking of working in culturally sensitive areas such as policing, prisons, social work, journalism, politics, research, care, health and justice agencies, support groups, charities, film or television.</p>
+      <h3 style="color:#CE1F2C;">Year 1 Modules</h3>
+      <ul style="color:#10253f;">
+        <li><b style='color:#CE1F2C;'>CR1001</b> Criminology: A History and Introduction</li>
+        <li><b style='color:#CE1F2C;'>CR1002</b> Criminology: Key Concepts, Studies and Issues (10 credits)</li>
+        <li><b style='color:#CE1F2C;'>CR1003</b> Introduction to the Psychology of Crime</li>
+        <li><b style='color:#CE1F2C;'>CR1006</b> Criminal Law and Social Control</li>
+        <li><b style='color:#003C69;'>SC1012</b> Introduction to Sociology (Part A)</li>
+        <li><b style='color:#003C69;'>SC1017</b> Key Issues in Sociology (Part B)</li>
+        <li><b style='color:#003C69;'>LW1169</b> Introduction to the Legal System for Criminology</li>
+        <li>One 15-credit option: <span style='color:#10253f;'>French, German, Italian, Spanish, Irish, Philosophy, or Government & Politics</span></li>
+      </ul>
+      <h3 style="color:#CE1F2C;">Year 2 Modules</h3>
+      <ul style="color:#10253f;">
+        <li><b style='color:#CE1F2C;'>CR2001</b> Contemporary Criminological Theory</li>
+        <li><b style='color:#003C69;'>SC2021</b> Sociology of Crime and Deviance</li>
+        <li><b style='color:#003C69;'>SC2065</b> Introduction to Social Research</li>
+        <li>Electives: <span style='color:#10253f;'>Women, Confinement and Social Control in Ireland; Crime, Urbanization and Cities; Policing Modern Society; Victims and Victimology; Young People, Trauma and the Criminal Justice System; Prisons in Practice; Online Hackers and Cyber-deviants; The Global Trade in Illicit Drugs and Its Regulation; Inside-Out Criminal Justice and Social Justice; and more.</span></li>
+      </ul>
+      <h3 style="color:#CE1F2C;">Year 3 Modules</h3>
+      <ul style="color:#10253f;">
+        <li><b style='color:#CE1F2C;'>CR3001</b> Research Methods for Criminology</li>
+        <li><b style='color:#CE1F2C;'>CR3010</b> Crime, Justice and Policy (10 credits)</li>
+        <li>Electives: <span style='color:#10253f;'>Corporate Crime; Dissertation in Criminology; Abolitionism: Critical carceral studies; and more.</span></li>
+        <li>Optional study abroad year (International Pathway)</li>
+      </ul>
+    </div>
+  </section>
+  </main>
+
+  <script>
+    const NODE_COLORS = ["#FFB500", "#CE1F2C", "#003C69"];
+    const QUERY = "I want to understand crime";
+
+    // Criminology-focused nodes and links
+    const graphData = {
+      nodes: [
+        { id: "CK113 BA Hons Criminology", group: 0, highlight: true },
+        { id: "Criminology", group: 0 },
+        { id: "Crime", group: 1 },
+        { id: "Justice", group: 2 },
+        { id: "Law", group: 1 },
+        { id: "Policing", group: 2 },
+        { id: "Victimology", group: 0 },
+        { id: "Punishment", group: 1 },
+        { id: "Deviance", group: 2 },
+        { id: "Social Control", group: 0 },
+        { id: "Theories of Crime", group: 1 },
+        { id: "White Collar Crime", group: 2 },
+        { id: "Youth Justice", group: 0 },
+        { id: "Gender & Crime", group: 1 },
+        { id: "Drugs & Crime", group: 2 },
+        { id: "Media & Crime", group: 0 },
+        { id: "Restorative Justice", group: 1 },
+        { id: "Penology", group: 2 },
+        { id: "Critical Criminology", group: 0 },
+        { id: "Victims' Rights", group: 1 },
+        { id: "Durkheim", group: 2 },
+        { id: "Merton", group: 0 },
+        { id: "Becker", group: 1 },
+        { id: "Foucault", group: 2 },
+        { id: "Garland", group: 0 },
+        { id: "Stanley Cohen", group: 1 },
+        { id: "Sutherland", group: 2 },
+        { id: "Lombroso", group: 0 },
+        { id: "Matza", group: 1 },
+        { id: "Jock Young", group: 2 },
+        { id: "Strain Theory", group: 0 },
+        { id: "Labeling Theory", group: 1 },
+        { id: "Social Disorganization", group: 2 },
+        { id: "Routine Activity Theory", group: 0 },
+        { id: "Broken Windows", group: 1 },
+        { id: "Cultural Criminology", group: 2 },
+        { id: "Rational Choice Theory", group: 0 },
+        { id: "Control Theory", group: 1 },
+        { id: "Differential Association", group: 2 },
+        { id: "Moral Panic", group: 0 }
+      ],
+      links: [
+        ["CK113 BA Hons Criminology", "Criminology"],
+        ["Criminology", "Crime"],
+        ["Criminology", "Justice"],
+        ["Criminology", "Law"],
+        ["Criminology", "Policing"],
+        ["Criminology", "Victimology"],
+        ["Criminology", "Punishment"],
+        ["Criminology", "Deviance"],
+        ["Criminology", "Social Control"],
+        ["Criminology", "Theories of Crime"],
+        ["Theories of Crime", "Critical Criminology"],
+        ["Theories of Crime", "White Collar Crime"],
+        ["Theories of Crime", "Gender & Crime"],
+        ["Theories of Crime", "Drugs & Crime"],
+        ["Justice", "Restorative Justice"],
+        ["Justice", "Youth Justice"],
+        ["Justice", "Victims' Rights"],
+        ["Punishment", "Penology"],
+        ["Media & Crime", "Crime"],
+        ["Media & Crime", "Deviance"],
+        ["Victimology", "Victims' Rights"],
+        ["Law", "White Collar Crime"],
+        ["Theories of Crime", "Durkheim"],
+        ["Theories of Crime", "Merton"],
+        ["Theories of Crime", "Becker"],
+        ["Theories of Crime", "Sutherland"],
+        ["Theories of Crime", "Lombroso"],
+        ["Theories of Crime", "Matza"],
+        ["Theories of Crime", "Jock Young"],
+        ["Critical Criminology", "Foucault"],
+        ["Critical Criminology", "Garland"],
+        ["Media & Crime", "Stanley Cohen"],
+        ["Merton", "Strain Theory"],
+        ["Becker", "Labeling Theory"],
+        ["Sutherland", "Differential Association"],
+        ["Durkheim", "Social Disorganization"],
+        ["Control Theory", "Social Control"],
+        ["Routine Activity Theory", "Policing"],
+        ["Rational Choice Theory", "Crime"],
+        ["Broken Windows", "Policing"],
+        ["Cultural Criminology", "Media & Crime"],
+        ["Stanley Cohen", "Moral Panic"],
+        ["Labeling Theory", "Deviance"],
+        ["Strain Theory", "Youth Justice"],
+        ["Differential Association", "Drugs & Crime"],
+        ["Foucault", "Punishment"],
+        ["Garland", "Penology"],
+        ["Matza", "Deviance"],
+        ["Jock Young", "Cultural Criminology"],
+        ["Social Disorganization", "Crime"],
+        ["Routine Activity Theory", "White Collar Crime"],
+        ["Rational Choice Theory", "White Collar Crime"],
+        ["Moral Panic", "Youth Justice"]
+      ]
+    };
+
+    const canvas = document.getElementById("graph");
+    const ctx = canvas.getContext("2d");
+    const form = document.getElementById("searchForm");
+    const input = document.getElementById("searchInput");
+    const meta = document.getElementById("meta");
+
+    const state = {
+      nodes: [],
+      links: [],
+      active: false,
+      frame: 0,
+      revealStart: 0,
+      autoScrollStarted: false,
+      centerRepel: 7000,
+      drift: 0.05
+    };
+
+    function startPanelAutoScroll(panel) {
+      if (!panel || state.autoScrollStarted) {
+        return;
+      }
+
+      state.autoScrollStarted = true;
+      const speedPerFrame = 1.1;
+      panel.scrollTop = 0;
+
+      function step() {
+        const maxScrollTop = panel.scrollHeight - panel.clientHeight;
+        if (panel.scrollTop >= maxScrollTop - 1) {
+          return;
+        }
+        panel.scrollTop += speedPerFrame;
+        requestAnimationFrame(step);
+      }
+
+      requestAnimationFrame(step);
+    }
+
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function alphaHex(alpha) {
+      const n = Math.round(clamp(alpha, 0, 1) * 255);
+      return n.toString(16).padStart(2, "0");
+    }
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+
+    function initializeGraph() {
+      const radius = Math.min(canvas.width, canvas.height) * 0.5;
+      const cx = canvas.width * 0.5;
+      const cy = canvas.height * 0.5;
+
+      state.nodes = graphData.nodes.map((n, i, arr) => {
+        const a = (Math.PI * 2 * i) / arr.length;
+        const revealAt = n.id === "CK113 BA Hons Criminology" ? 0 : 260 + i * 170;
+        return {
+          id: n.id,
+          group: n.group,
+          highlight: n.highlight || false,
+          revealAt,
+          x: cx + Math.cos(a) * radius + (Math.random() - 0.5) * 30,
+          y: cy + Math.sin(a) * radius + (Math.random() - 0.5) * 30,
+          vx: 0,
+          vy: 0,
+          r: n.id === "CK113 BA Hons Criminology" ? 22 : 12 + Math.random() * 3
+        };
+      });
+
+      const nodeById = Object.fromEntries(state.nodes.map((n) => [n.id, n]));
+      state.links = graphData.links.map(([a, b], i) => {
+        const source = nodeById[a];
+        const target = nodeById[b];
+        return {
+          source,
+          target,
+          revealAt: Math.max(source.revealAt, target.revealAt) + 240 + i * 75
+        };
+      });
+      state.revealStart = performance.now();
+      state.active = true;
+    }
+
+    function tickPhysics() {
+      if (!state.active) {
+        return;
+      }
+
+      const centerX = canvas.width * 0.5;
+      const centerY = canvas.height * 0.5;
+      const springLength = Math.min(canvas.width, canvas.height) * 0.24;
+
+      for (let i = 0; i < state.nodes.length; i++) {
+        const n1 = state.nodes[i];
+
+        for (let j = i + 1; j < state.nodes.length; j++) {
+          const n2 = state.nodes[j];
+          let dx = n2.x - n1.x;
+          let dy = n2.y - n1.y;
+          const distSq = dx * dx + dy * dy + 0.01;
+          const dist = Math.sqrt(distSq);
+          const repel = 1600 / distSq;
+
+          dx /= dist;
+          dy /= dist;
+
+          n1.vx -= dx * repel;
+          n1.vy -= dy * repel;
+          n2.vx += dx * repel;
+          n2.vy += dy * repel;
+        }
+      }
+
+      for (const link of state.links) {
+        const dx = link.target.x - link.source.x;
+        const dy = link.target.y - link.source.y;
+        const d = Math.sqrt(dx * dx + dy * dy) || 0.0001;
+        const stretch = d - springLength;
+        const force = stretch * 0.006;
+        const ux = dx / d;
+        const uy = dy / d;
+
+        link.source.vx += ux * force;
+        link.source.vy += uy * force;
+        link.target.vx -= ux * force;
+        link.target.vy -= uy * force;
+      }
+
+      for (const node of state.nodes) {
+        const dx = node.x - centerX;
+        const dy = node.y - centerY;
+        const distSq = dx * dx + dy * dy + 0.01;
+        const dist = Math.sqrt(distSq);
+        const pull = Math.max(0, dist - Math.min(canvas.width, canvas.height) * 0.46) * 0.002;
+
+        node.vx -= (dx / dist) * pull;
+        node.vy -= (dy / dist) * pull;
+
+        const centerClear = 120;
+        if (dist < centerClear) {
+          const push = (centerClear - dist) * 0.0035;
+          node.vx += (dx / dist) * push;
+          node.vy += (dy / dist) * push;
+        }
+
+        const noise = (Math.sin(state.frame * 0.008 + node.x * 0.01 + node.y * 0.01) - 0.5) * state.drift;
+        node.vx += noise;
+        node.vy -= noise;
+
+        node.vx *= 0.93;
+        node.vy *= 0.93;
+        node.x += node.vx;
+        node.y += node.vy;
+
+        if (node.x < 20) node.x = 20;
+        if (node.x > canvas.width - 20) node.x = canvas.width - 20;
+        if (node.y < 20) node.y = 20;
+        if (node.y > canvas.height - 20) node.y = canvas.height - 20;
+      }
+
+      state.frame += 1;
+    }
+
+    function drawGraph() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      if (!state.active) {
+        return;
+      }
+
+      const elapsed = performance.now() - state.revealStart;
+
+      ctx.lineWidth = 1.4;
+      for (const link of state.links) {
+        const linkProgress = clamp((elapsed - link.revealAt) / 560, 0, 1);
+        if (linkProgress <= 0) {
+          continue;
+        }
+        const g = (link.source.group + link.target.group) % NODE_COLORS.length;
+        ctx.strokeStyle = NODE_COLORS[g] + alphaHex(0.55 * linkProgress);
+        ctx.beginPath();
+        ctx.moveTo(link.source.x, link.source.y);
+        ctx.lineTo(link.target.x, link.target.y);
+        ctx.stroke();
+      }
+
+      for (const n of state.nodes) {
+        const nodeProgress = clamp((elapsed - n.revealAt) / 620, 0, 1);
+        if (nodeProgress <= 0) {
+          continue;
+        }
+        const color = NODE_COLORS[n.group % NODE_COLORS.length];
+        // Highlight CK113 node
+        if (n.highlight) {
+          ctx.save();
+          ctx.shadowColor = color;
+          ctx.shadowBlur = 32 * nodeProgress;
+        }
+        ctx.beginPath();
+        ctx.fillStyle = color + alphaHex((n.highlight ? 0.8 : 0.27) * nodeProgress);
+        ctx.arc(n.x, n.y, n.r + (n.highlight ? 12 : 8), 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.fillStyle = color + alphaHex(nodeProgress);
+        ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
+        ctx.fill();
+        if (n.highlight) ctx.restore();
+        ctx.fillStyle = (n.highlight ? "#10253f" : "#163451") + alphaHex(nodeProgress);
+        ctx.font = n.highlight ? '700 15px "Space Grotesk", sans-serif' : '500 13px "Space Grotesk", sans-serif';
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(n.id, n.x, n.y - n.r - (n.highlight ? 18 : 13));
+      }
+        // Overlay for CK113 degree intro
+        const overlay = document.createElement('div');
+        overlay.style.position = 'fixed';
+        overlay.style.inset = '0';
+        overlay.style.background = 'rgba(10,18,32,0.92)';
+        overlay.style.display = 'none';
+        overlay.style.zIndex = '1000';
+        overlay.style.justifyContent = 'center';
+        overlay.style.alignItems = 'center';
+        overlay.style.flexDirection = 'column';
+        overlay.style.color = '#fff';
+        overlay.style.fontFamily = 'Space Grotesk, Segoe UI, sans-serif';
+        overlay.innerHTML = `
+          <div style="background:rgba(0,60,105,0.98);padding:38px 32px 28px 32px;border-radius:22px;max-width:420px;box-shadow:0 8px 48px #003C69aa;">
+            <h2 style="margin-top:0;font-size:2rem;letter-spacing:0.01em;">CK113 BA (Hons) Criminology</h2>
+            <p style="font-size:1.1rem;line-height:1.6;margin-bottom:18px;">The BA (Hons) Criminology at UCC (CK113) is an innovative degree exploring the causes, consequences, and prevention of crime. Students engage with criminal justice, law, policing, social policy, and critical theories, preparing for diverse careers in justice, research, and policy.</p>
+            <ul style="font-size:1rem;line-height:1.5;margin-bottom:18px;padding-left:18px;">
+              <li>Explore crime, deviance, and justice from multiple perspectives</li>
+              <li>Study policing, punishment, victimology, and social control</li>
+              <li>Develop research and analytical skills for real-world impact</li>
+            </ul>
+            <button id="closeOverlay" style="margin-top:8px;padding:10px 22px;border-radius:8px;border:none;background:linear-gradient(90deg,#FFB500,#CE1F2C);color:#003C69;font-weight:700;font-size:1rem;cursor:pointer;">Close</button>
+          </div>
+        `;
+        overlay.addEventListener('click', (e) => {
+          if (e.target.id === 'closeOverlay' || e.target === overlay) overlay.style.display = 'none';
+        });
+        document.body.appendChild(overlay);
+
+        // Node click detection
+        canvas.addEventListener('click', function(e) {
+          if (!state.active) return;
+          const rect = canvas.getBoundingClientRect();
+          const mx = e.clientX - rect.left;
+          const my = e.clientY - rect.top;
+          for (const n of state.nodes) {
+            const dx = mx - n.x;
+            const dy = my - n.y;
+            if (Math.sqrt(dx*dx + dy*dy) < n.r + (n.highlight ? 12 : 8)) {
+              if (n.id === 'CK113 BA Hons Criminology') {
+                overlay.style.display = 'flex';
+                return;
+              }
+            }
+          }
+        });
+    }
+
+    function animate() {
+      tickPhysics();
+      drawGraph();
+      requestAnimationFrame(animate);
+    }
+
+    function runSearch(query) {
+      const trimmed = query.trim();
+      if (!trimmed) {
+        meta.textContent = "Type a question to build a sociological map.";
+        state.active = false;
+        state.autoScrollStarted = false;
+        const panel = document.getElementById("ck113Panel");
+        if (panel) panel.scrollTop = 0;
+        return;
+      }
+
+      if (trimmed.toLowerCase() === QUERY.toLowerCase()) {
+        initializeGraph();
+        state.autoScrollStarted = false;
+        const panel = document.getElementById("ck113Panel");
+        if (panel) panel.scrollTop = 0;
+        meta.textContent = "AI engine: scanning criminology topics...";
+      } else {
+        initializeGraph();
+        state.autoScrollStarted = false;
+        const panel = document.getElementById("ck113Panel");
+        if (panel) panel.scrollTop = 0;
+        meta.textContent = "AI engine: mapping related criminology topics...";
+      }
+    }
+
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      runSearch(input.value);
+    });
+
+    window.addEventListener("resize", () => {
+      resizeCanvas();
+      if (state.active) {
+        initializeGraph();
+      }
+    });
+
+    resizeCanvas();
+    animate();
+
+    let i = 0;
+    input.value = "";
+    function typeDemo() {
+      if (i <= QUERY.length) {
+        input.value = QUERY.slice(0, i);
+        i += 1;
+        setTimeout(typeDemo, 34);
+      } else {
+        runSearch(QUERY);
+        // After a short pause, animate UI up and show CK113 panel
+        setTimeout(() => {
+          // Move center UI up
+          const centerUI = document.getElementById('centerUI');
+          centerUI.style.transition = 'top 2.2s cubic-bezier(.77,.01,.29,.98), transform 2.2s cubic-bezier(.77,.01,.29,.98)';
+          centerUI.style.top = '4%';
+          centerUI.style.transform = 'translate(-50%, 0)';
+          // Slide up the CK113 panel
+          const panel = document.getElementById('ck113Panel');
+          panel.style.top = '30%';
+
+          // Start slow auto-scroll after the panel finishes its transition.
+          setTimeout(() => {
+            startPanelAutoScroll(panel);
+          }, 2400);
+        }, 1200);
+      }
+    }
+    setTimeout(typeDemo, 250);
+
+    setInterval(() => {
+      if (!state.active) {
+        return;
+      }
+      const elapsed = performance.now() - state.revealStart;
+      const visibleNodes = state.nodes.filter((n) => elapsed >= n.revealAt).length;
+      if (visibleNodes < state.nodes.length) {
+        meta.textContent = `AI engine: identifying relevant topics... ${visibleNodes}/${state.nodes.length}`;
+      } else {
+        meta.textContent = ".";
+      }
+    }, 140);
+  </script>
+</body>
+</html>
