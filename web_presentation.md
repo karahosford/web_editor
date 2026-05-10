@@ -70,7 +70,7 @@ The existing site is like an onion. The future site should behave like a starbur
 
 **Problem:** The onion model (layered templates and silos) forces users to peel through multiple levels.
 
-**AI Search Solution:** Use AI-driven metadata, relationship mapping, and editorial tagging to surface connected answers in one place. Current web-technologies see user enters a natural-language query and receives a dynamic, connected pathway of relevant content.
+**AI Search Solution:** Use AI-driven metadata, relationship mapping, and editorial tagging to surface connected answers in one place. Current web-technologies see user entering natural-language queries expecting to receive a dynamic, connected pathway of relevant content.
 
 ![bg right:33%](images/pages.png)
 
