@@ -246,7 +246,7 @@ By keeping "human context" at the center, the digital presence remains trustwort
 # How I Would Deliver in This Role
 
 - Build and maintain an editorial SOP workflow that balances **speed, quality, and compliance**
-- Evaluate and workshop trusted AI to support repetitive tasks (alt text, summaries, metadata) while keeping **human sign-off**
+- Evaluate and workshop trusted AI to support repetitive tasks (alt text, summaries, SEO/AEO metadata) while keeping **human sign-off**
 - Prioritize **E-E-A-T principles** and **student-centered** journeys so users move from query to answer quickly
 - Measure impact through **accessibility compliance**, engagement metrics, and content performance
 - **Collaborate** across schools and services to keep the UCC voice consistent and trusted
